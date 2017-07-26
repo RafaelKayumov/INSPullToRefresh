@@ -63,7 +63,6 @@ CGFloat const INSPullToRefreshDefaultDragToTriggerOffset = 80;
 
 @interface INSPullToRefreshBackgroundView ()
 @property (nonatomic, weak) UIScrollView *scrollView;
-@property (nonatomic, readwrite) INSPullToRefreshBackgroundViewState state;
 @property (nonatomic, assign) UIEdgeInsets externalContentInset;
 @property (nonatomic, assign, getter = isUpdatingScrollViewContentInset) BOOL updatingScrollViewContentInset;
 @end
@@ -72,7 +71,7 @@ CGFloat const INSPullToRefreshDefaultDragToTriggerOffset = 80;
 
 #pragma mark - Setters
 
-- (void)setState:(INSPullToRefreshBackgroundViewState)newState {
+- (void)setState:(INSPullToRefreshBackgroundViewState)newState manually:(BOOL)manually {
     
     if (_state == newState)
         return;
@@ -93,7 +92,7 @@ CGFloat const INSPullToRefreshDefaultDragToTriggerOffset = 80;
         case INSPullToRefreshBackgroundViewStateLoading: {
             [self setScrollViewContentInsetForLoadingAnimated:YES];
             
-            if (previousState == INSPullToRefreshBackgroundViewStateTriggered && self.actionHandler) {
+            if (previousState == INSPullToRefreshBackgroundViewStateTriggered && self.actionHandler && !manually) {
                 self.actionHandler(self.scrollView);
             }
             break;
@@ -159,7 +158,7 @@ CGFloat const INSPullToRefreshDefaultDragToTriggerOffset = 80;
     }
     
     if (self.state == INSPullToRefreshBackgroundViewStateNone) {
-        [self changeState:INSPullToRefreshBackgroundViewStateTriggered];
+        [self changeState:INSPullToRefreshBackgroundViewStateTriggered manually:YES];
         
         dispatch_async(dispatch_get_main_queue(), ^{
 			if (self.state != INSPullToRefreshBackgroundViewStateNone) {
@@ -167,7 +166,7 @@ CGFloat const INSPullToRefreshDefaultDragToTriggerOffset = 80;
 			}
         });
         
-        [self changeState:INSPullToRefreshBackgroundViewStateLoading];
+        [self changeState:INSPullToRefreshBackgroundViewStateLoading manually:YES];
     }
 }
 - (void)endRefreshing {
@@ -183,10 +182,16 @@ CGFloat const INSPullToRefreshDefaultDragToTriggerOffset = 80;
 }
 
 - (void)changeState:(INSPullToRefreshBackgroundViewState)state {
+    [self changeState:state manually:NO];
+}
+
+- (void)changeState:(INSPullToRefreshBackgroundViewState)state manually:(BOOL)manually {
     if (self.state == state) {
         return;
     }
-    self.state = state;
+    
+    [self setState:state manually:manually];
+    
     if ([self.delegate respondsToSelector:@selector(pullToRefreshBackgroundView:didChangeState:)]) {
         [self.delegate pullToRefreshBackgroundView:self didChangeState:self.state];
     }
